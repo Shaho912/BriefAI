@@ -2,7 +2,7 @@
 .env
 
 # Output artifacts — ignore generated files but keep the research profile
-output/
+output/*
 !output/profile.json
 
 # Python
