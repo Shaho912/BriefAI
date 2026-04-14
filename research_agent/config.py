@@ -15,6 +15,7 @@ class ConfigError(Exception):
 class ResearchConfig:
     anthropic_api_key: str
     openai_api_key: str
+    claude_model: str
     arxiv_categories: list[str]
     relevance_threshold: float
     output_dir: Path
@@ -50,6 +51,7 @@ def load_research_config(
     return ResearchConfig(
         anthropic_api_key=anthropic_key,
         openai_api_key=openai_key,
+        claude_model=os.getenv("BRIEFAI_CLAUDE_MODEL", "claude-sonnet-4-6"),
         arxiv_categories=categories,
         relevance_threshold=threshold,
         output_dir=Path(output_dir or os.getenv("BRIEFAI_OUTPUT_DIR", "./output")),
