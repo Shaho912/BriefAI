@@ -1,9 +1,10 @@
 # Environment
 .env
 
-# Output artifacts — ignore generated files but keep the research profile
+# Output artifacts — ignore generated files but keep persistent state
 output/*
 !output/profile.json
+!output/seen_papers.json
 
 # Python
 __pycache__/

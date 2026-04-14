@@ -14,6 +14,7 @@ from .fetcher import Paper
 console = Console()
 
 FALLBACK_THRESHOLD = 0.60
+SEEN_PAPERS_FILENAME = "seen_papers.json"
 
 
 class PaperSelector:
@@ -29,11 +30,12 @@ class PaperSelector:
         top_n: int = 5,
     ) -> Paper | None:
         """
-        Select the top-1 paper above the relevance threshold.
+        Select the top-1 unseen paper above the relevance threshold.
 
         Saves:
           output/candidates_{YYYYMMDD}.json  — full scored list
           output/selected_{YYYYMMDD}.json    — top-1 paper + score
+          output/seen_papers.json            — running list of briefed arXiv IDs
 
         Returns the selected Paper or None if no paper qualifies.
         """
@@ -47,23 +49,30 @@ class PaperSelector:
         # Save full candidate list regardless of threshold
         self._save_candidates(scored_papers, config.output_dir, today)
 
+        # Filter out already-briefed papers
+        seen_ids = self._load_seen(config.output_dir)
+        unseen_papers = [(p, s) for p, s in scored_papers if p.arxiv_id not in seen_ids]
+        if len(unseen_papers) < len(scored_papers):
+            skipped = len(scored_papers) - len(unseen_papers)
+            console.print(f"[dim]Skipping {skipped} already-briefed paper(s).[/dim]")
+
         # Apply threshold — with fallback
         qualifying = [
-            (p, s) for p, s in scored_papers if s >= config.relevance_threshold
+            (p, s) for p, s in unseen_papers if s >= config.relevance_threshold
         ]
 
         if not qualifying:
             console.print(
-                f"[yellow]No papers above threshold {config.relevance_threshold:.2f}. "
+                f"[yellow]No unseen papers above threshold {config.relevance_threshold:.2f}. "
                 f"Trying fallback threshold {FALLBACK_THRESHOLD:.2f}...[/yellow]"
             )
             qualifying = [
-                (p, s) for p, s in scored_papers if s >= FALLBACK_THRESHOLD
+                (p, s) for p, s in unseen_papers if s >= FALLBACK_THRESHOLD
             ]
 
         if not qualifying:
             console.print(
-                "[yellow]No qualifying papers today. "
+                "[yellow]No qualifying unseen papers today. "
                 "Consider lowering RELEVANCE_THRESHOLD in .env.[/yellow]"
             )
             self._print_top_n(scored_papers, top_n)
@@ -71,8 +80,9 @@ class PaperSelector:
 
         top_paper, top_score = qualifying[0]
 
-        # Save selected paper
+        # Save selected paper and record it as seen
         self._save_selected(top_paper, top_score, config.output_dir, today)
+        self._mark_seen(top_paper.arxiv_id, config.output_dir)
 
         # Print terminal summary
         self._print_top_n(scored_papers, top_n)
@@ -113,6 +123,18 @@ class PaperSelector:
         path = output_dir / f"selected_{today}.json"
         path.write_text(json.dumps(data, indent=2), encoding="utf-8")
         console.print(f"[dim]Selected paper saved to {path}[/dim]")
+
+    def _load_seen(self, output_dir: Path) -> set[str]:
+        path = output_dir / SEEN_PAPERS_FILENAME
+        if not path.exists():
+            return set()
+        return set(json.loads(path.read_text(encoding="utf-8")))
+
+    def _mark_seen(self, arxiv_id: str, output_dir: Path) -> None:
+        seen = self._load_seen(output_dir)
+        seen.add(arxiv_id)
+        path = output_dir / SEEN_PAPERS_FILENAME
+        path.write_text(json.dumps(sorted(seen), indent=2), encoding="utf-8")
 
     def _print_top_n(
         self,
