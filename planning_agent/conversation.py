@@ -159,14 +159,26 @@ class ConversationManager:
         """
         Apply cache_control to the second-to-last user message so that all
         prior conversation is cached on the next API call (moving breakpoint).
+
+        Strips cache_control from all messages first to avoid exceeding the
+        Anthropic limit of 4 cache_control blocks per request (1 is used by
+        the system prompt, leaving 3 for conversation — but we only need 1).
         """
+        # Remove all existing cache_control blocks from every message
+        for msg in self.messages:
+            content = msg.get("content")
+            if isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict):
+                        block.pop("cache_control", None)
+
         user_messages = [
             (i, m) for i, m in enumerate(self.messages) if m["role"] == "user"
         ]
         if len(user_messages) < 2:
             return
 
-        # Second-to-last user message
+        # Apply to second-to-last user message (most recent fully exchanged turn)
         idx, msg = user_messages[-2]
         content = msg["content"]
         if isinstance(content, str):
