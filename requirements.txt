@@ -4,3 +4,5 @@ rich>=13.0.0
 feedparser>=6.0.0
 openai>=1.0.0
 numpy>=1.24.0
+elevenlabs>=1.0.0
+supabase>=2.0.0

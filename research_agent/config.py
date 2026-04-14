@@ -19,6 +19,14 @@ class ResearchConfig:
     arxiv_categories: list[str]
     relevance_threshold: float
     output_dir: Path
+    # Phase 4 — optional delivery fields
+    elevenlabs_api_key: str | None
+    elevenlabs_voice_id: str
+    supabase_url: str | None
+    supabase_service_key: str | None
+    supabase_bucket: str
+    pushover_api_token: str | None
+    pushover_user_key: str | None
 
 
 def load_research_config(
@@ -55,4 +63,11 @@ def load_research_config(
         arxiv_categories=categories,
         relevance_threshold=threshold,
         output_dir=Path(output_dir or os.getenv("BRIEFAI_OUTPUT_DIR", "./output")),
+        elevenlabs_api_key=os.getenv("ELEVENLABS_API_KEY", "").strip() or None,
+        elevenlabs_voice_id=os.getenv("ELEVENLABS_VOICE_ID", "JBFqnCBsd6RMkjVDRZzb"),
+        supabase_url=os.getenv("SUPABASE_URL", "").strip() or None,
+        supabase_service_key=os.getenv("SUPABASE_SERVICE_KEY", "").strip() or None,
+        supabase_bucket=os.getenv("SUPABASE_BUCKET", "briefs"),
+        pushover_api_token=os.getenv("PUSHOVER_API_TOKEN", "").strip() or None,
+        pushover_user_key=os.getenv("PUSHOVER_USER_KEY", "").strip() or None,
     )

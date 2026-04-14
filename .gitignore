@@ -1,8 +1,9 @@
 # Environment
 .env
 
-# Output artifacts
+# Output artifacts — ignore generated files but keep the research profile
 output/
+!output/profile.json
 
 # Python
 __pycache__/
