@@ -9,7 +9,7 @@ Researchers and professionals waste hours manually scanning papers, feeds, and n
 - **Claude API (Anthropic)** — LLM backbone for requirements gathering, research synthesis, and brief generation
 - **ara.so** — agent runtime for browser automation, scheduling daily triggers, and persistent memory (Phase 4)
 - **ElevenLabs** — text-to-speech for voice delivery of the daily brief (Phase 4)
-- **Python 3.13+** with `anthropic`, `rich`, `python-dotenv`
+- **Python 3.13+** with `anthropic`, `rich`, `python-dotenv`, `openai`, `feedparser`, `numpy`
 
 ---
 
@@ -17,6 +17,7 @@ Researchers and professionals waste hours manually scanning papers, feeds, and n
 
 Required in `.env` (see `.env.example`):
 - `ANTHROPIC_API_KEY` — get from console.anthropic.com
+- `OPENAI_API_KEY` — get from platform.openai.com (used for paper scoring embeddings)
 
 Install and run:
 ```bash
@@ -34,6 +35,8 @@ python main.py
 
 - Anthropic API allows max 4 `cache_control` blocks per request — always strip existing ones from message history before applying a new cache breakpoint or the API returns a 400
 - Always use prompt caching (`cache_control: ephemeral`) on system prompts — skipping it wastes tokens on every turn
+- arXiv RSS feeds can lag by up to 24–48h — the fetcher uses a 48-hour recency window, not 24h
+- Paper scoring uses OpenAI `text-embedding-3-small` (1536 dims) + cosine similarity — profile must be created with `--setup-profile` before ingestion can run
 
 ## Code Style
 
