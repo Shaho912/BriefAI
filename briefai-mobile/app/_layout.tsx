@@ -30,7 +30,14 @@ export default function RootLayout() {
     // Check if the user has completed onboarding (has a profile)
     apiFetch<{ focus_text: string }>('/settings')
       .then(() => setHasProfile(true))
-      .catch(() => setHasProfile(false));
+      .catch(async (err: Error) => {
+        // If the backend rejects the token (user deleted), sign out to clear local session
+        if (err.message.includes('401') || err.message.includes('Unauthorized') || err.message.includes('not found')) {
+          await supabase.auth.signOut();
+        } else {
+          setHasProfile(false);
+        }
+      });
   }, [session]);
 
   useEffect(() => {
