@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Alert,
+  StyleSheet, ActivityIndicator, Alert, RefreshControl,
 } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { apiFetch } from '../../lib/api';
@@ -25,15 +25,25 @@ export default function TodayScreen() {
   const [error, setError] = useState<string | null>(null);
   const [speedIndex, setSpeedIndex] = useState(1); // default 1.0x
   const [triggering, setTriggering] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const player = useAudioPlayer(brief?.audio_url ? { uri: brief.audio_url } : null);
   const status = useAudioPlayerStatus(player);
 
+  function loadBrief() {
+    return apiFetch<Brief>('/briefs/latest')
+      .then(data => { setBrief(data); setError(null); })
+      .catch(() => setError('No brief yet. Your first one will arrive at your scheduled delivery time.'));
+  }
+
   useEffect(() => {
-    apiFetch<Brief>('/briefs/latest')
-      .then(setBrief)
-      .catch(() => setError('No brief yet. Your first one will arrive at your scheduled delivery time.'))
-      .finally(() => setLoading(false));
+    loadBrief().finally(() => setLoading(false));
   }, []);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await loadBrief();
+    setRefreshing(false);
+  }
 
   function togglePlay() {
     if (status.playing) {
@@ -87,7 +97,11 @@ export default function TodayScreen() {
   );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ffffff" />}
+    >
       {/* Manual trigger — always at top */}
       <TouchableOpacity style={styles.triggerButton} onPress={triggerBrief} disabled={triggering}>
         {triggering
