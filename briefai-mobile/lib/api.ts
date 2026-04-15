@@ -18,8 +18,10 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     headers: { ...headers, ...(options.headers ?? {}) },
   });
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(error?.detail ?? `Request failed: ${res.status}`);
+    const error = await res.json().catch(() => null);
+    const detail = error?.detail;
+    const message = typeof detail === 'string' ? detail : res.statusText;
+    throw new Error(`${res.status}: ${message}`);
   }
   return res.json();
 }
