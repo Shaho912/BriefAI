@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, ActivityIndicator,
 } from 'react-native';
-import { Audio } from 'expo-av';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { apiFetch } from '../../lib/api';
 
 type Brief = {
@@ -23,12 +23,9 @@ export default function TodayScreen() {
   const [brief, setBrief] = useState<Brief | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [speedIndex, setSpeedIndex] = useState(1); // default 1.0x
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const player = useAudioPlayer(brief?.audio_url ? { uri: brief.audio_url } : null);
+  const status = useAudioPlayerStatus(player);
 
   useEffect(() => {
     apiFetch<Brief>('/briefs/latest')
@@ -37,53 +34,26 @@ export default function TodayScreen() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    return () => { sound?.unloadAsync(); };
-  }, [sound]);
-
-  async function loadAudio() {
-    if (!brief?.audio_url || sound) return;
-    await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-    const { sound: newSound } = await Audio.Sound.createAsync(
-      { uri: brief.audio_url },
-      { shouldPlay: true, rate: SPEEDS[speedIndex] },
-    );
-    newSound.setOnPlaybackStatusUpdate((status) => {
-      if (!status.isLoaded) return;
-      setPosition(status.positionMillis);
-      setDuration(status.durationMillis ?? 0);
-      if (status.didJustFinish) {
-        setPlaying(false);
-        clearInterval(intervalRef.current!);
-      }
-    });
-    setSound(newSound);
-    setPlaying(true);
-  }
-
-  async function togglePlay() {
-    if (!sound) { await loadAudio(); return; }
-    const status = await sound.getStatusAsync();
-    if (!status.isLoaded) return;
-    if (status.isPlaying) {
-      await sound.pauseAsync();
-      setPlaying(false);
+  function togglePlay() {
+    if (status.playing) {
+      player.pause();
     } else {
-      await sound.playAsync();
-      setPlaying(true);
+      player.play();
     }
   }
 
-  async function cycleSpeed() {
+  function cycleSpeed() {
     const next = (speedIndex + 1) % SPEEDS.length;
     setSpeedIndex(next);
-    if (sound) await sound.setRateAsync(SPEEDS[next], true);
+    player.setPlaybackRate(SPEEDS[next]);
   }
 
-  function formatTime(ms: number) {
-    const s = Math.floor(ms / 1000);
-    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  function formatTime(s: number) {
+    return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   }
+
+  const position = status.currentTime ?? 0;
+  const duration = status.duration ?? 0;
 
   if (loading) return <View style={styles.center}><ActivityIndicator color="#ffffff" /></View>;
 
@@ -118,7 +88,7 @@ export default function TodayScreen() {
               <Text style={styles.speedText}>{SPEEDS[speedIndex]}x</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.playButton} onPress={togglePlay}>
-              <Text style={styles.playIcon}>{playing ? '⏸' : '▶'}</Text>
+              <Text style={styles.playIcon}>{status.playing ? '⏸' : '▶'}</Text>
             </TouchableOpacity>
             <View style={{ width: 56 }} />
           </View>
