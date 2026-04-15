@@ -4,7 +4,7 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { apiFetch, apiStream } from '../../lib/api';
+import { apiFetch } from '../../lib/api';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
@@ -56,29 +56,16 @@ export default function OnboardingScreen() {
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setLoading(true);
 
-    let reply = '';
     try {
-      await apiStream(
+      const response = await apiFetch<{ message: string; is_complete: boolean }>(
         `/onboarding/session/${sessionId}/message`,
         {
           method: 'POST',
           body: JSON.stringify({ content: userMessage }),
         },
-        (chunk) => {
-          reply += chunk;
-          setMessages(prev => {
-            const updated = [...prev];
-            const last = updated[updated.length - 1];
-            if (last?.role === 'assistant') {
-              updated[updated.length - 1] = { role: 'assistant', content: reply };
-            } else {
-              updated.push({ role: 'assistant', content: reply });
-            }
-            return updated;
-          });
-        },
       );
-      if (reply.includes(SENTINEL)) setIsComplete(true);
+      setMessages(prev => [...prev, { role: 'assistant', content: response.message }]);
+      if (response.is_complete) setIsComplete(true);
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Something went wrong. Please try again.' }]);
     } finally {

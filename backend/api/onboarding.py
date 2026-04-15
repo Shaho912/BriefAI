@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from ..config import settings
 from ..dependencies import CurrentUser
 from ..models import MessageRequest, SessionCreated, SessionDetail
-from ..pipeline.onboarding_chat import OnboardingChat
+from ..pipeline.onboarding_chat import OnboardingChat, SENTINEL
 from ..supabase_client import get_admin_client
 
 router = APIRouter(prefix="/onboarding", tags=["onboarding"])
@@ -70,11 +70,9 @@ async def send_message(
     session_id: str,
     body: MessageRequest,
     user_id: CurrentUser,
-) -> StreamingResponse:
+) -> dict:
     """
-    Send a user message and stream Claude's reply as Server-Sent Events.
-    Each SSE event is a text chunk: `data: <chunk>\n\n`
-    The client detects REQUIREMENTS_COMPLETE in the stream to know when to show "Finish" button.
+    Send a user message and return Claude's full reply as JSON.
     """
     chat, row = _get_chat(session_id, user_id)
 
@@ -84,16 +82,11 @@ async def send_message(
             detail="Session already completed.",
         )
 
-    collected: list[str] = []
-
-    async def event_stream():
-        async for chunk in chat.send_message(body.content):
-            collected.append(chunk)
-            yield f"data: {chunk}\n\n"
-        # After streaming, persist updated messages
-        _save_messages(session_id, chat.messages)
-
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    full_text = ""
+    async for chunk in chat.send_message(body.content):
+        full_text += chunk
+    _save_messages(session_id, chat.messages)
+    return {"message": full_text, "is_complete": SENTINEL in full_text}
 
 
 @router.post("/session/{session_id}/opening")
