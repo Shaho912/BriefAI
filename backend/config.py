@@ -20,7 +20,6 @@ class Settings(BaseSettings):
     # Supabase
     supabase_url: str
     supabase_service_key: str          # service role key — backend only, never sent to client
-    supabase_jwt_secret: str           # from Supabase project settings → API → JWT Secret
     supabase_bucket: str = "briefs"
 
     # RevenueCat
