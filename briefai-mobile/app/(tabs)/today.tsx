@@ -88,6 +88,13 @@ export default function TodayScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Manual trigger — always at top */}
+      <TouchableOpacity style={styles.triggerButton} onPress={triggerBrief} disabled={triggering}>
+        {triggering
+          ? <ActivityIndicator color="#ffffff" size="small" />
+          : <Text style={styles.triggerText}>Generate New Brief</Text>}
+      </TouchableOpacity>
+
       {/* Paper metadata */}
       <View style={styles.card}>
         <Text style={styles.score}>Relevance {(brief.relevance_score * 100).toFixed(0)}%</Text>
@@ -122,13 +129,6 @@ export default function TodayScreen() {
       <View style={styles.briefCard}>
         <Text style={styles.briefText}>{brief.brief_text}</Text>
       </View>
-
-      {/* Manual trigger */}
-      <TouchableOpacity style={styles.triggerButton} onPress={triggerBrief} disabled={triggering}>
-        {triggering
-          ? <ActivityIndicator color="#ffffff" size="small" />
-          : <Text style={styles.triggerText}>Generate New Brief</Text>}
-      </TouchableOpacity>
     </ScrollView>
   );
 }
