@@ -103,13 +103,14 @@ async def get_brief(brief_id: str, user_id: CurrentUser) -> BriefDetail:
 @router.post("/trigger", status_code=status.HTTP_202_ACCEPTED)
 async def trigger_pipeline(user_id: CurrentUser) -> dict:
     """Manually trigger a pipeline run. Paid tier only."""
-    sb = get_admin_client()
-    user_row = sb.table("users").select("tier").eq("id", user_id).single().execute()
-    if not user_row.data or user_row.data["tier"] != "paid":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={"error": "upgrade_required", "feature": "manual_trigger"},
-        )
+    # TODO: re-enable paid gate before App Store submission
+    # sb = get_admin_client()
+    # user_row = sb.table("users").select("tier").eq("id", user_id).single().execute()
+    # if not user_row.data or user_row.data["tier"] != "paid":
+    #     raise HTTPException(
+    #         status_code=status.HTTP_403_FORBIDDEN,
+    #         detail={"error": "upgrade_required", "feature": "manual_trigger"},
+    #     )
 
     from backend.pipeline.runner import run_pipeline_for_user
     asyncio.create_task(asyncio.to_thread(run_pipeline_for_user, user_id))
