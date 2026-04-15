@@ -48,7 +48,7 @@ export default function RootLayout() {
 
     if (!session && !inAuth) {
       router.replace('/(auth)/welcome');
-    } else if (session && hasProfile === false && segments[1] !== 'onboarding') {
+    } else if (session && hasProfile === false && !inTabs && (segments as string[])[1] !== 'onboarding') {
       router.replace('/(auth)/onboarding');
     } else if (session && hasProfile === true && inAuth) {
       router.replace('/(tabs)/today');

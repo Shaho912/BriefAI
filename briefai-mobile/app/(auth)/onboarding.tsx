@@ -78,8 +78,11 @@ export default function OnboardingScreen() {
     setFinishing(true);
     try {
       await apiFetch(`/onboarding/session/${sessionId}/complete`, { method: 'POST' });
+      // Small delay to let the profile write propagate before _layout re-checks
+      await new Promise(resolve => setTimeout(resolve, 500));
       router.replace('/(tabs)/today');
-    } catch {
+    } catch (e) {
+      console.error('Finish onboarding failed:', e);
       setFinishing(false);
     }
   }

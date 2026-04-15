@@ -22,7 +22,7 @@ Researchers and professionals waste hours manually scanning papers, feeds, and n
 
 ### iOS App (Phase 5)
 - **Expo / React Native** — iOS app, built via EAS Build (Windows-compatible, no Xcode needed)
-- **expo-av** — audio playback for brief MP3s
+- **expo-audio** — audio playback for brief MP3s (use this, NOT the deprecated expo-av)
 - **expo-notifications** — push notifications via Expo Push Service (replaces Pushover)
 - **react-native-purchases** — RevenueCat SDK for in-app subscriptions
 
@@ -72,10 +72,16 @@ python run_pipeline.py
 ```
 
 ### Backend (Phase 5)
-Additional env vars needed in Railway:
-- `SUPABASE_JWT_SECRET` — from Supabase project settings
+Additional env vars needed in Railway (do NOT add `SUPABASE_JWT_SECRET` — JWT auth uses JWKS, not the shared secret):
+- `SUPABASE_URL` — your Supabase project URL (e.g. `https://xxx.supabase.co`)
+- `SUPABASE_SERVICE_KEY` — service role key from Supabase project settings
 - `REVENUECAT_WEBHOOK_SECRET` — from RevenueCat dashboard
 - All pipeline keys above (shared)
+
+### Expo App (`.env` / `app.config.js` with `EXPO_PUBLIC_` prefix)
+- `EXPO_PUBLIC_SUPABASE_URL` — same as SUPABASE_URL
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY` — anon/public key from Supabase
+- `EXPO_PUBLIC_API_URL` — Railway backend URL, **no trailing slash** (e.g. `https://briefai.up.railway.app`)
 
 ---
 
@@ -91,13 +97,37 @@ Additional env vars needed in Railway:
 
 ## Gotchas
 
+### Python / Pipeline
 - Anthropic API allows max 4 `cache_control` blocks per request — always strip existing ones from message history before applying a new cache breakpoint or the API returns a 400
 - Always use prompt caching (`cache_control: ephemeral`) on system prompts — skipping it wastes tokens on every turn
 - arXiv RSS feeds can lag by up to 24–48h — the fetcher uses a 48-hour recency window, not 24h
 - Paper scoring uses OpenAI `text-embedding-3-small` (1536 dims) + cosine similarity — profile must be created with `--setup-profile` before the single-user pipeline can run
 - `seen_papers.json` is committed to git so GitHub Actions remembers it across runs — the GitHub Actions workflow commits it back after each run with `[skip ci]` to avoid triggering another run
-- EAS Build requires an Apple Developer account ($99/year) only for App Store submission — development and TestFlight testing work without it
 - APScheduler loses in-memory schedule state on Railway restarts — always rebuild the schedule from the `profiles` table on FastAPI startup
+
+### Supabase Auth (JWT)
+- Supabase uses ECC P-256 / ES256 keys by default — **not** HS256. Use `PyJWKClient` pointing at `{SUPABASE_URL}/auth/v1/.well-known/jwks.json` to validate tokens. Do not use the shared `SUPABASE_JWT_SECRET` for decoding.
+- A `handle_new_user()` trigger must exist in Supabase to auto-create a `public.users` row whenever someone signs up via `auth.users`. Without it, all FK constraints on `user_id` will fail. Run once in the SQL editor:
+  ```sql
+  create or replace function public.handle_new_user()
+  returns trigger as $$
+  begin
+    insert into public.users (id, email) values (new.id, new.email);
+    return new;
+  end;
+  $$ language plpgsql security definer;
+  create or replace trigger on_auth_user_created
+    after insert on auth.users
+    for each row execute procedure public.handle_new_user();
+  ```
+- Email confirmation is **disabled** in Supabase Auth settings for development — re-enable before App Store submission
+
+### Expo / React Native
+- All `npm install` commands require `--legacy-peer-deps` due to React 19.1 vs 19.2 peer conflict introduced by expo-router
+- React Native's `fetch` does **not** support SSE response body streaming — onboarding and all other endpoints must return JSON, not `StreamingResponse`
+- `expo-secure-store` has a **2048-byte limit per key** — Supabase JWTs exceed this. Use a chunked adapter (see `briefai-mobile/lib/supabase.ts`) that splits large values across multiple keyed entries
+- `EXPO_PUBLIC_API_URL` must have **no trailing slash** — `apiFetch` in `lib/api.ts` concatenates paths starting with `/`, so a trailing slash causes double-slash URLs (`//settings`)
+- EAS Build requires an Apple Developer account ($99/year) only for App Store submission — development and TestFlight testing work without it
 
 ## Code Style
 
