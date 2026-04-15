@@ -43,7 +43,8 @@ export default function OnboardingScreen() {
         );
         if (reply.includes(SENTINEL)) setIsComplete(true);
       } catch (e) {
-        setMessages([{ role: 'assistant', content: "Hi! Tell me about your research focus and I'll set up your daily brief." }]);
+        console.error('Onboarding init failed:', e);
+        setMessages([{ role: 'assistant', content: `Error: ${e instanceof Error ? e.message : String(e)}` }]);
       } finally {
         setLoading(false);
       }
