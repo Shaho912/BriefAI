@@ -113,7 +113,7 @@ async def trigger_pipeline(user_id: CurrentUser) -> dict:
     #     )
 
     from backend.pipeline.runner import run_pipeline_for_user
-    asyncio.create_task(asyncio.to_thread(run_pipeline_for_user, user_id))
+    asyncio.create_task(asyncio.to_thread(run_pipeline_for_user, user_id, True))
     return {"message": "Pipeline triggered. Your brief will be ready shortly."}
 
 

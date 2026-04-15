@@ -47,7 +47,7 @@ class _UserContext:
     delivery_hour_utc: int
 
 
-def run_pipeline_for_user(user_id: str) -> None:
+def run_pipeline_for_user(user_id: str, force: bool = False) -> None:
     """Entry point for APScheduler and the manual trigger endpoint."""
     logger.info("Pipeline starting for user=%s", user_id)
     sb = get_admin_client()
@@ -158,10 +158,20 @@ def run_pipeline_for_user(user_id: str) -> None:
     config_no_seen = ResearchConfig(
         **{**config.__dict__, "output_dir": tmp_output}
     )
+
     selected = PaperSelector().select(unseen_scored, config_no_seen, top_n=5)
     if selected is None:
-        logger.info("No qualifying paper for user %s.", user_id)
-        return
+        # Nothing cleared the threshold — fall back to the highest scoring unseen paper
+        top_paper, top_score = max(unseen_scored, key=lambda x: x[1])
+        logger.info("No paper above threshold; falling back to top paper (score=%.4f).", top_score)
+        import json as _json2
+        from dataclasses import asdict
+        _today = datetime.now().strftime("%Y%m%d")
+        (tmp_output / f"selected_{_today}.json").write_text(
+            _json2.dumps({**asdict(top_paper), "relevance_score": round(top_score, 6)}, indent=2),
+            encoding="utf-8",
+        )
+        selected = top_paper
 
     # ------------------------------------------------------------------
     # Phase 3 — Brief generation
