@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { Session } from '@supabase/supabase-js';
+import * as Notifications from 'expo-notifications';
 import { supabase } from '../lib/supabase';
 import { apiFetch } from '../lib/api';
 
@@ -26,6 +27,18 @@ export default function RootLayout() {
       router.replace('/(auth)/welcome');
       return;
     }
+
+    // Register push token with backend
+    Notifications.getPermissionsAsync().then(({ status }) => {
+      if (status !== 'granted') return Notifications.requestPermissionsAsync();
+    }).then(() =>
+      Notifications.getExpoPushTokenAsync()
+    ).then(({ data: expoPushToken }) => {
+      apiFetch('/auth/push-token', {
+        method: 'PUT',
+        body: JSON.stringify({ expo_push_token: expoPushToken }),
+      }).catch(() => {}); // non-fatal
+    }).catch(() => {}); // permission denied or simulator — ignore
 
     // Check if the user has completed onboarding (has a profile)
     apiFetch<{ focus_text: string }>('/settings')

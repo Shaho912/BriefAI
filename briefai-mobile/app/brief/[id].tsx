@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Alert,
+  StyleSheet, ActivityIndicator,
 } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { apiFetch } from '../../lib/api';
 
@@ -19,21 +20,21 @@ type Brief = {
 
 const SPEEDS = [0.75, 1.0, 1.25, 1.5];
 
-export default function TodayScreen() {
+export default function BriefDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const [brief, setBrief] = useState<Brief | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [speedIndex, setSpeedIndex] = useState(1); // default 1.0x
-  const [triggering, setTriggering] = useState(false);
+  const [speedIndex, setSpeedIndex] = useState(1);
+
   const player = useAudioPlayer(brief?.audio_url ? { uri: brief.audio_url } : null);
   const status = useAudioPlayerStatus(player);
 
   useEffect(() => {
-    apiFetch<Brief>('/briefs/latest')
+    apiFetch<Brief>(`/briefs/${id}`)
       .then(setBrief)
-      .catch(() => setError('No brief yet. Your first one will arrive at your scheduled delivery time.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [id]);
 
   function togglePlay() {
     if (status.playing) {
@@ -49,23 +50,6 @@ export default function TodayScreen() {
     player.setPlaybackRate(SPEEDS[next]);
   }
 
-  async function triggerBrief() {
-    setTriggering(true);
-    try {
-      const res = await apiFetch<{ message: string }>('/briefs/trigger', { method: 'POST' });
-      Alert.alert('On its way', res.message);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('403') || msg.includes('upgrade_required')) {
-        Alert.alert('Pro feature', 'Manual brief generation is available on the Pro plan. Upgrade in Settings.');
-      } else {
-        Alert.alert('Error', 'Could not trigger brief. Please try again.');
-      }
-    } finally {
-      setTriggering(false);
-    }
-  }
-
   function formatTime(s: number) {
     return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   }
@@ -75,14 +59,9 @@ export default function TodayScreen() {
 
   if (loading) return <View style={styles.center}><ActivityIndicator color="#ffffff" /></View>;
 
-  if (error || !brief) return (
+  if (!brief) return (
     <View style={styles.center}>
-      <Text style={styles.emptyText}>{error}</Text>
-      <TouchableOpacity style={styles.triggerButton} onPress={triggerBrief} disabled={triggering}>
-        {triggering
-          ? <ActivityIndicator color="#ffffff" size="small" />
-          : <Text style={styles.triggerText}>Generate Brief Now</Text>}
-      </TouchableOpacity>
+      <Text style={styles.emptyText}>Brief not found.</Text>
     </View>
   );
 
@@ -94,6 +73,11 @@ export default function TodayScreen() {
         <Text style={styles.title}>{brief.title}</Text>
         <Text style={styles.authors}>{brief.authors.slice(0, 3).join(', ')}</Text>
         <Text style={styles.arxiv}>arXiv:{brief.arxiv_id}</Text>
+        <Text style={styles.date}>
+          {new Date(brief.generated_at).toLocaleDateString('en-US', {
+            month: 'long', day: 'numeric', year: 'numeric',
+          })}
+        </Text>
       </View>
 
       {/* Audio player */}
@@ -122,13 +106,6 @@ export default function TodayScreen() {
       <View style={styles.briefCard}>
         <Text style={styles.briefText}>{brief.brief_text}</Text>
       </View>
-
-      {/* Manual trigger */}
-      <TouchableOpacity style={styles.triggerButton} onPress={triggerBrief} disabled={triggering}>
-        {triggering
-          ? <ActivityIndicator color="#ffffff" size="small" />
-          : <Text style={styles.triggerText}>Generate New Brief</Text>}
-      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -137,12 +114,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   content: { padding: 20, gap: 16 },
   center: { flex: 1, backgroundColor: '#0a0a0a', justifyContent: 'center', alignItems: 'center', padding: 32 },
-  emptyText: { color: '#666', fontSize: 16, textAlign: 'center', lineHeight: 26 },
+  emptyText: { color: '#666', fontSize: 16, textAlign: 'center' },
   card: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 20, gap: 8 },
   score: { fontSize: 12, color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
   title: { fontSize: 18, fontWeight: '700', color: '#ffffff', lineHeight: 26 },
   authors: { fontSize: 13, color: '#888' },
   arxiv: { fontSize: 12, color: '#555' },
+  date: { fontSize: 12, color: '#555' },
   player: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 20, gap: 12 },
   progressBar: { height: 4, backgroundColor: '#333', borderRadius: 2, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: '#ffffff', borderRadius: 2 },
@@ -155,9 +133,4 @@ const styles = StyleSheet.create({
   playIcon: { fontSize: 24, color: '#0a0a0a' },
   briefCard: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 20 },
   briefText: { color: '#cccccc', fontSize: 15, lineHeight: 26 },
-  triggerButton: {
-    borderRadius: 12, padding: 16, alignItems: 'center',
-    borderWidth: 1, borderColor: '#333', marginTop: 4,
-  },
-  triggerText: { fontSize: 15, color: '#888' },
 });
