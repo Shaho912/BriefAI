@@ -31,16 +31,13 @@ export default function OnboardingScreen() {
         });
         setSessionId(session_id);
 
-        // Stream opening message
-        let reply = '';
-        await apiStream(
+        // Get opening message
+        const opening = await apiFetch<{ message: string }>(
           `/onboarding/session/${session_id}/opening`,
           { method: 'POST' },
-          (chunk) => {
-            reply += chunk;
-            setMessages([{ role: 'assistant', content: reply }]);
-          },
         );
+        const reply = opening.message ?? '';
+        setMessages([{ role: 'assistant', content: reply }]);
         if (reply.includes(SENTINEL)) setIsComplete(true);
       } catch (e) {
         console.error('Onboarding init failed:', e);

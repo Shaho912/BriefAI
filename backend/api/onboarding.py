@@ -97,24 +97,23 @@ async def send_message(
 
 
 @router.post("/session/{session_id}/opening")
-async def opening_message(session_id: str, user_id: CurrentUser) -> StreamingResponse:
+async def opening_message(session_id: str, user_id: CurrentUser) -> dict:
     """
-    Generate Claude's first message. Call this once after creating a session.
+    Generate Claude's first message. Returns JSON with the full message.
     """
     chat, row = _get_chat(session_id, user_id)
 
     if row["messages"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Session already has messages.",
-        )
+        # Already has messages — return the first assistant message
+        for msg in row["messages"]:
+            if msg["role"] == "assistant":
+                return {"message": msg["content"]}
 
-    async def event_stream():
-        async for chunk in chat.opening_message():
-            yield f"data: {chunk}\n\n"
-        _save_messages(session_id, chat.messages)
-
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    full_text = ""
+    async for chunk in chat.opening_message():
+        full_text += chunk
+    _save_messages(session_id, chat.messages)
+    return {"message": full_text}
 
 
 @router.post("/session/{session_id}/complete", status_code=status.HTTP_200_OK)
