@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 
 export default function WelcomeScreen() {
@@ -7,12 +7,7 @@ export default function WelcomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.hero}>
-        <Image
-          source={require('../../assets/briefAI-logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <Text style={styles.title}>Penn Engineering</Text>
+        <Text style={styles.title}>BriefAI</Text>
         <Text style={styles.subtitle}>
           Your daily research brief,{'\n'}delivered as audio.
         </Text>
@@ -32,8 +27,7 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a', justifyContent: 'space-between', padding: 32 },
   hero: { flex: 1, justifyContent: 'center' },
-  logo: { width: 180, height: 60, marginBottom: 24, tintColor: '#ffffff' },
-  title: { fontSize: 32, fontWeight: '700', color: '#ffffff', marginBottom: 12 },
+  title: { fontSize: 48, fontWeight: '700', color: '#ffffff', marginBottom: 16 },
   subtitle: { fontSize: 20, color: '#888888', lineHeight: 30 },
   buttons: { gap: 12 },
   primary: { backgroundColor: '#ffffff', borderRadius: 12, padding: 18, alignItems: 'center' },
