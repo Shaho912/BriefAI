@@ -67,6 +67,9 @@ export default function BriefDetailScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <Text style={styles.backText}>← History</Text>
+      </TouchableOpacity>
       {/* Paper metadata */}
       <View style={styles.card}>
         <Text style={styles.score}>Relevance {(brief.relevance_score * 100).toFixed(0)}%</Text>
@@ -115,6 +118,8 @@ const styles = StyleSheet.create({
   content: { padding: 20, gap: 16 },
   center: { flex: 1, backgroundColor: '#0a0a0a', justifyContent: 'center', alignItems: 'center', padding: 32 },
   emptyText: { color: '#666', fontSize: 16, textAlign: 'center' },
+  backButton: { paddingVertical: 8, paddingBottom: 4 },
+  backText: { color: '#888', fontSize: 15 },
   card: { backgroundColor: '#1a1a1a', borderRadius: 16, padding: 20, gap: 8 },
   score: { fontSize: 12, color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
   title: { fontSize: 18, fontWeight: '700', color: '#ffffff', lineHeight: 26 },
