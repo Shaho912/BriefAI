@@ -50,6 +50,7 @@ export default function HistoryScreen() {
       contentContainerStyle={styles.content}
       data={briefs}
       keyExtractor={item => item.id}
+      alwaysBounceVertical
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ffffff" />}
       renderItem={({ item }) => (
         <TouchableOpacity style={styles.card} onPress={() => router.push(`/brief/${item.id}`)}>

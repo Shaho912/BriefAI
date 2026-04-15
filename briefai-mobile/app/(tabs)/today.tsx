@@ -87,7 +87,8 @@ export default function TodayScreen() {
 
   if (error || !brief) return (
     <ScrollView
-      contentContainerStyle={styles.center}
+      contentContainerStyle={[styles.center, { flexGrow: 1 }]}
+      alwaysBounceVertical
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ffffff" />}
     >
       <Text style={styles.emptyText}>{error}</Text>
@@ -103,6 +104,7 @@ export default function TodayScreen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
+      alwaysBounceVertical
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ffffff" />}
     >
       {/* Manual trigger — always at top */}

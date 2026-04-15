@@ -58,6 +58,7 @@ export default function SettingsScreen() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
+      alwaysBounceVertical
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ffffff" />}
     >
 
