@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Alert,
+  StyleSheet, ActivityIndicator, Alert, RefreshControl,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/api';
@@ -24,16 +24,27 @@ export default function SettingsScreen() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    Promise.all([
+  function loadSettings() {
+    return Promise.all([
       apiFetch<Settings>('/settings'),
       apiFetch<SubscriptionStatus>('/subscriptions/status'),
     ]).then(([s, sub]) => {
       setSettings(s);
       setSubscription(sub);
-    }).finally(() => setLoading(false));
+    });
+  }
+
+  useEffect(() => {
+    loadSettings().finally(() => setLoading(false));
   }, []);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await loadSettings().catch(() => {});
+    setRefreshing(false);
+  }
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -44,7 +55,11 @@ export default function SettingsScreen() {
   const isPaid = subscription?.tier === 'paid';
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ffffff" />}
+    >
 
       {/* Subscription status */}
       <View style={styles.section}>

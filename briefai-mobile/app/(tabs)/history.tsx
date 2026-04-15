@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator,
+  StyleSheet, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../lib/api';
@@ -19,12 +19,22 @@ export default function HistoryScreen() {
   const router = useRouter();
   const [briefs, setBriefs] = useState<BriefSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  function loadBriefs() {
+    return apiFetch<{ items: BriefSummary[] }>('/briefs')
+      .then(data => setBriefs(data.items));
+  }
 
   useEffect(() => {
-    apiFetch<{ items: BriefSummary[] }>('/briefs')
-      .then(data => setBriefs(data.items))
-      .finally(() => setLoading(false));
+    loadBriefs().finally(() => setLoading(false));
   }, []);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await loadBriefs().catch(() => {});
+    setRefreshing(false);
+  }
 
   if (loading) return <View style={styles.center}><ActivityIndicator color="#ffffff" /></View>;
 
@@ -40,6 +50,7 @@ export default function HistoryScreen() {
       contentContainerStyle={styles.content}
       data={briefs}
       keyExtractor={item => item.id}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ffffff" />}
       renderItem={({ item }) => (
         <TouchableOpacity style={styles.card} onPress={() => router.push(`/brief/${item.id}`)}>
           <View style={styles.cardHeader}>

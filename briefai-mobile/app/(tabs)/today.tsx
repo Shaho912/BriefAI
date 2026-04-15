@@ -86,14 +86,17 @@ export default function TodayScreen() {
   if (loading) return <View style={styles.center}><ActivityIndicator color="#ffffff" /></View>;
 
   if (error || !brief) return (
-    <View style={styles.center}>
+    <ScrollView
+      contentContainerStyle={styles.center}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ffffff" />}
+    >
       <Text style={styles.emptyText}>{error}</Text>
       <TouchableOpacity style={styles.triggerButton} onPress={triggerBrief} disabled={triggering}>
         {triggering
           ? <ActivityIndicator color="#ffffff" size="small" />
           : <Text style={styles.triggerText}>Generate Brief Now</Text>}
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 
   return (
