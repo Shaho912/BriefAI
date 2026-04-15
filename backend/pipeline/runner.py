@@ -71,12 +71,15 @@ def run_pipeline_for_user(user_id: str) -> None:
         logger.warning("No profile for user %s — aborting.", user_id)
         return
 
+    raw_embedding = profile_row.data["embedding"]
+    embedding: list[float] = json.loads(raw_embedding) if isinstance(raw_embedding, str) else raw_embedding
+
     ctx = _UserContext(
         user_id=user_id,
         tier=user_row.data["tier"],
         expo_push_token=user_row.data.get("expo_push_token"),
         focus_text=profile_row.data["focus_text"],
-        embedding=profile_row.data["embedding"],
+        embedding=embedding,
         arxiv_categories=profile_row.data["arxiv_categories"],
         relevance_threshold=profile_row.data["relevance_threshold"],
         elevenlabs_voice_id=profile_row.data["elevenlabs_voice_id"],
